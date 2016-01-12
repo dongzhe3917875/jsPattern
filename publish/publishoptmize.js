@@ -39,7 +39,7 @@ $(document).ready(function() {
 
     // 定义所谓的event 发布 执行handler
     this.publish = function(eventName, eventArg) {
-      var event = this.getEvent(eventName);
+      var event = getEvent(eventName);
       if (!event) {
         event = new Event(eventName);
         events.push(event);
@@ -49,7 +49,7 @@ $(document).ready(function() {
 
     // 定义handler 订阅 定义handler
     this.subscribe = function(eventName, handler) {
-      var event = this.getEvent(eventName);
+      var event = getEvent(eventName);
       if (!event) {
         event = new Event(eventName);
         events.push(event);
@@ -57,46 +57,79 @@ $(document).ready(function() {
       event.addHandler(handler);
     }
   }
-});
-function Product(id, description) {
-    this.getId = function () {
-        return id;
-    };
-    this.getDescription = function () {
-        return description;
-    };
-}
+  function Product(id, description) {
+      this.getId = function () {
+          return id;
+      };
+      this.getDescription = function () {
+          return description;
+      };
+  }
 
-function Cart(eventAggregator) {
-    var items = [];
+  function Cart(eventAggregator) {
+      var items = [];
 
-    this.addItem = function (item) {
-        items.push(item);
-        // 对item执行了itemAdded所订阅的handler event.handler（item）
-        eventAggregator.publish("itemAdded", item);
-    };
-}
+      this.addItem = function (item) {
+          items.push(item);
+          // 对item执行了itemAdded所订阅的handler event.handler（item）
+          eventAggregator.publish("itemAdded", item);
+      };
+  }
 
 
-// CartController主要是接受cart对象和事件聚合器，通过订阅itemAdded来增加一个li元素节点，通过订阅productSelected事件来添加product。
-function CartController(cart, eventAggregator) {
-  // 定义itemAdded event 的handler 每一个itemAdded都是一个event对象
-  eventAggregator.subscribe("itemAdded", function(eventArg) {
-    var newItem = $('<li></li>').html(eventArg.getDescription()).attr('id-cart', eventArg.getId()).appendTo("#cart");
-  });
+  // CartController主要是接受cart对象和事件聚合器，通过订阅itemAdded来增加一个li元素节点，通过订阅productSelected事件来添加product。
 
-  eventAggregator.subscribe("productSelected", function(eventArgs) {
-    cart.addItem(eventArgs.product);
-  });
-}
+  // itemAdded事件
+  // productSelected事件 触发 itemAdded事件
+  function CartController(cart, eventAggregator) {
+    // 定义itemAdded event 的handler 每一个itemAdded都是一个event对象
+    eventAggregator.subscribe("itemAdded", function(eventArg) {
+      var newItem = $('<li></li>').html(eventArg.getDescription()).attr('id-cart', eventArg.getId()).appendTo("#cart");
+    });
 
-// Repository 获取product数据
-function ProductRepository() {
-    var products = [new Product(1, "Star Wars Lego Ship"),
-            new Product(2, "Barbie Doll"),
-            new Product(3, "Remote Control Airplane")];
+    eventAggregator.subscribe("productSelected", function(eventArgs) {
+      cart.addItem(eventArgs.product);
+    });
+  }
 
-    this.getProducts = function () {
-        return products;
+  // Repository 获取product数据
+  function ProductRepository() {
+      var products = [new Product(1, "Star Wars Lego Ship"),
+              new Product(2, "Barbie Doll"),
+              new Product(3, "Remote Control Airplane")];
+
+      this.getProducts = function () {
+          return products;
+      }
+  }
+
+  //
+  function ProductController(eventAggregator, productRepository) {
+    var products = productRepository.getProducts();
+    // 双击的绑定事件 绑定时触发productSelected 传的参数
+    function onProductSelected() {
+      var productId = $(this).attr('id');
+      var product = $.grep(products, function(x) {
+        return x.getId() == productId;
+      })[0];
+      eventAggregator.publish("productSelected", {
+        product: product
+      });
     }
-}
+
+    // product的初始化 并且绑定事件
+    products.forEach(function(product) {
+      var newItem = $('<li></li>').html(product.getDescription())
+        .attr('id', product.getId())
+        .dblclick(onProductSelected)
+        .appendTo("#products");
+    });
+  }
+  (function() {
+    var eventAggregator = new EventAggregator(),
+      cart = new Cart(eventAggregator),
+      cartController = new CartController(cart, eventAggregator),
+      productRepository = new ProductRepository(),
+      productController = new ProductController(eventAggregator, productRepository);
+  })();
+});
