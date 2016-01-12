@@ -74,6 +74,16 @@ $(document).ready(function() {
           // 对item执行了itemAdded所订阅的handler event.handler（item）
           eventAggregator.publish("itemAdded", item);
       };
+      this.showProduct = function(item) {
+        $("#" + item.getId()).show();
+      }
+      this.removeItem = function(item) {
+        for (var j = 0; j < items.length; j++) {
+          if (items[j] === item) {
+            items.splice(j, 1);
+          }
+        }
+      }
   }
 
 
@@ -81,12 +91,23 @@ $(document).ready(function() {
 
   // itemAdded事件
   // productSelected事件 触发 itemAdded事件
-  function CartController(cart, eventAggregator) {
+  function CartController(cart, eventAggregator, ProductRepository) {
     // 定义itemAdded event 的handler 每一个itemAdded都是一个event对象
     eventAggregator.subscribe("itemAdded", function(eventArg) {
       var newItem = $('<li></li>').html(eventArg.getDescription()).attr('id-cart', eventArg.getId()).appendTo("#cart");
+      $("<a href='javascript:void(0);'>取消</a>").on("click", function() {
+        // 点击取消 发布removeProduct 取消按钮删除
+        $(this).remove();
+        eventAggregator.publish("removeProduct", eventArg);
+      }).appendTo("#cart");
     });
 
+    // 订阅了一个取消功能 取消时从cart中删除 product也要从新显示出来
+    eventAggregator.subscribe("removeProduct", function(eventArgs) {
+      $("[id-cart=" + eventArgs.getId() + "]").remove();
+      cart.removeItem(eventArgs);
+      cart.showProduct(eventArgs);
+    });
     eventAggregator.subscribe("productSelected", function(eventArgs) {
       cart.addItem(eventArgs.product);
     });
@@ -109,6 +130,7 @@ $(document).ready(function() {
     // 双击的绑定事件 绑定时触发productSelected 传的参数
     function onProductSelected() {
       var productId = $(this).attr('id');
+      $(this).hide();
       var product = $.grep(products, function(x) {
         return x.getId() == productId;
       })[0];
@@ -128,8 +150,8 @@ $(document).ready(function() {
   (function() {
     var eventAggregator = new EventAggregator(),
       cart = new Cart(eventAggregator),
-      cartController = new CartController(cart, eventAggregator),
       productRepository = new ProductRepository(),
+      cartController = new CartController(cart, eventAggregator, productRepository),
       productController = new ProductController(eventAggregator, productRepository);
   })();
 });
