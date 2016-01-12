@@ -64,6 +64,9 @@ $(document).ready(function() {
       this.getDescription = function () {
           return description;
       };
+      this.showProduct = function() {
+        $("#" + this.getId()).show();
+      }
   }
 
   function Cart(eventAggregator) {
@@ -74,9 +77,6 @@ $(document).ready(function() {
           // 对item执行了itemAdded所订阅的handler event.handler（item）
           eventAggregator.publish("itemAdded", item);
       };
-      this.showProduct = function(item) {
-        $("#" + item.getId()).show();
-      }
       this.removeItem = function(item) {
         for (var j = 0; j < items.length; j++) {
           if (items[j] === item) {
@@ -91,7 +91,7 @@ $(document).ready(function() {
 
   // itemAdded事件
   // productSelected事件 触发 itemAdded事件
-  function CartController(cart, eventAggregator, ProductRepository) {
+  function CartController(cart, eventAggregator) {
     // 定义itemAdded event 的handler 每一个itemAdded都是一个event对象
     eventAggregator.subscribe("itemAdded", function(eventArg) {
       var newItem = $('<li></li>').html(eventArg.getDescription()).attr('id-cart', eventArg.getId()).appendTo("#cart");
@@ -106,7 +106,7 @@ $(document).ready(function() {
     eventAggregator.subscribe("removeProduct", function(eventArgs) {
       $("[id-cart=" + eventArgs.getId() + "]").remove();
       cart.removeItem(eventArgs);
-      cart.showProduct(eventArgs);
+      eventArgs.showProduct();
     });
     eventAggregator.subscribe("productSelected", function(eventArgs) {
       cart.addItem(eventArgs.product);
@@ -151,7 +151,7 @@ $(document).ready(function() {
     var eventAggregator = new EventAggregator(),
       cart = new Cart(eventAggregator),
       productRepository = new ProductRepository(),
-      cartController = new CartController(cart, eventAggregator, productRepository),
+      cartController = new CartController(cart, eventAggregator),
       productController = new ProductController(eventAggregator, productRepository);
   })();
 });
